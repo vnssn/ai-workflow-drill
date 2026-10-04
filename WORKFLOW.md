@@ -26,7 +26,13 @@ Round 1 was quicker to prompt and implement, but more of the quality depended on
 
 ## AI Mistake Caught
 
-One important lesson was that a vague prompt does not explicitly require automated verification. Round 1 produced a working feature, but it did not provide the dedicated validation tests that Round 2 produced. This showed me that functional output alone is not enough; the workflow should explicitly require verification.
+During review of Round 1, I found that the generated implementation had
+no automated verification for its validation behavior. Although the form
+worked during my manual checks, there was no regression protection for
+invalid email addresses, short display names, error clearing, or invalid
+submission. Round 2 explicitly required tests and added
+`tests/settingsValidation.test.js` with six validation and submission
+tests. All six tests passed.
 
 ## Conclusion
 
