@@ -1,122 +1,155 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, type ChangeEvent, type FormEvent } from "react";
+import "./App.css";
+import {
+  evaluateSettingsSubmission,
+  validateSettings,
+  type SettingsErrors,
+  type SettingsValues,
+} from "./settingsValidation";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [values, setValues] = useState<SettingsValues>({
+    displayName: "",
+    email: "",
+    theme: "Light",
+  });
+  const [errors, setErrors] = useState<SettingsErrors>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  function handleChange(
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) {
+    const field = event.target.name as keyof SettingsValues;
+    const nextValues = {
+      ...values,
+      [field]: event.target.value,
+    } as SettingsValues;
+
+    setValues(nextValues);
+    setSuccessMessage("");
+
+    if (hasSubmitted) {
+      const fieldErrors = validateSettings(nextValues);
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        [field]: fieldErrors[field],
+      }));
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setHasSubmitted(true);
+
+    const result = evaluateSettingsSubmission(values);
+    setErrors(result.errors);
+    setSuccessMessage(result.success ? result.message : "");
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+    <main className="settings-page" data-theme={values.theme.toLowerCase()}>
+      <div className="settings-shell">
+        <header className="page-heading">
+          <p className="eyebrow">ACCOUNT PREFERENCES</p>
+          <h1>Settings</h1>
+          <p className="page-description">
+            Manage your profile details and how the app looks to you.
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        </header>
 
-      <div className="ticks"></div>
+        <section className="settings-card" aria-labelledby="profile-heading">
+          <div className="card-heading">
+            <div className="avatar-mark" aria-hidden="true">
+              S
+            </div>
+            <div>
+              <h2 id="profile-heading">Profile</h2>
+              <p>Update your personal information and appearance.</p>
+            </div>
+          </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          <form className="settings-form" noValidate onSubmit={handleSubmit}>
+            <div className="form-field">
+              <label htmlFor="display-name">Display name</label>
+              <input
+                id="display-name"
+                name="displayName"
+                type="text"
+                autoComplete="name"
+                value={values.displayName}
+                onChange={handleChange}
+                aria-required="true"
+                aria-invalid={Boolean(errors.displayName)}
+                aria-describedby={
+                  errors.displayName ? "display-name-error" : undefined
+                }
+              />
+              {errors.displayName && (
+                <p className="field-error" id="display-name-error" role="alert">
+                  <span aria-hidden="true">!</span> {errors.displayName}
+                </p>
+              )}
+            </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+            <div className="form-field">
+              <label htmlFor="email">Email address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={values.email}
+                onChange={handleChange}
+                aria-required="true"
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "email-error" : undefined}
+              />
+              {errors.email && (
+                <p className="field-error" id="email-error" role="alert">
+                  <span aria-hidden="true">!</span> {errors.email}
+                </p>
+              )}
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="theme">Theme</label>
+              <select
+                id="theme"
+                name="theme"
+                value={values.theme}
+                onChange={handleChange}
+                aria-required="true"
+                aria-invalid={Boolean(errors.theme)}
+                aria-describedby={errors.theme ? "theme-error" : undefined}
+              >
+                <option value="Light">Light</option>
+                <option value="Dark">Dark</option>
+              </select>
+              {errors.theme && (
+                <p className="field-error" id="theme-error" role="alert">
+                  <span aria-hidden="true">!</span> {errors.theme}
+                </p>
+              )}
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="save-button">
+                Save changes
+              </button>
+              <p className="save-note">Your preferences are kept private.</p>
+            </div>
+            <p className="success-message" role="status" aria-live="polite">
+              {successMessage}
+            </p>
+          </form>
+        </section>
+        <footer className="page-footer">
+          Thoughtful settings for a better workspace.
+        </footer>
+      </div>
+    </main>
+  );
 }
 
-export default App
+export default App;
