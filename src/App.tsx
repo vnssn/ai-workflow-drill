@@ -1,122 +1,302 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import {
+  type ChangeEvent,
+  type FocusEvent,
+  type FormEvent,
+  useState,
+} from "react";
+import "./App.css";
+
+type FormValues = {
+  fullName: string;
+  email: string;
+  company: string;
+  password: string;
+  confirmPassword: string;
+  timezone: string;
+  notifications: boolean;
+};
+
+type FormErrors = Partial<Record<keyof FormValues, string>>;
+
+const initialValues: FormValues = {
+  fullName: "",
+  email: "",
+  company: "",
+  password: "",
+  confirmPassword: "",
+  timezone: "",
+  notifications: false,
+};
+
+const timezones = [
+  "UTC-08:00",
+  "UTC-05:00",
+  "UTC-03:00",
+  "UTC+00:00",
+  "UTC+05:30",
+];
+
+const getValidationErrors = (values: FormValues): FormErrors => {
+  const nextErrors: FormErrors = {};
+
+  if (!values.fullName.trim()) {
+    nextErrors.fullName = "Full name is required.";
+  } else if (values.fullName.trim().length < 2) {
+    nextErrors.fullName = "Full name must be at least 2 characters.";
+  }
+
+  if (!values.email.trim()) {
+    nextErrors.email = "Email is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    nextErrors.email = "Enter a valid email address.";
+  }
+
+  if (!values.company.trim()) {
+    nextErrors.company = "Company name is required.";
+  } else if (values.company.trim().length < 2) {
+    nextErrors.company = "Company name must be at least 2 characters.";
+  }
+
+  if (!values.password) {
+    nextErrors.password = "Password is required.";
+  } else if (values.password.length < 8) {
+    nextErrors.password = "Password must be at least 8 characters.";
+  }
+
+  if (!values.confirmPassword) {
+    nextErrors.confirmPassword = "Please confirm your password.";
+  } else if (values.confirmPassword !== values.password) {
+    nextErrors.confirmPassword = "Passwords do not match.";
+  }
+
+  if (!values.timezone) {
+    nextErrors.timezone = "Please choose a timezone.";
+  }
+
+  if (!values.notifications) {
+    nextErrors.notifications = "You must enable notifications to continue.";
+  }
+
+  return nextErrors;
+};
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [formValues, setFormValues] = useState<FormValues>(initialValues);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleFieldChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const target = event.target;
+    const fieldName = target.name as keyof FormValues;
+    const isCheckbox =
+      target instanceof HTMLInputElement && target.type === "checkbox";
+    const nextValue = isCheckbox ? target.checked : target.value;
+
+    const nextValues = { ...formValues, [fieldName]: nextValue };
+    const nextErrors = getValidationErrors(nextValues);
+
+    setFormValues(nextValues);
+    setIsSubmitted(false);
+    setErrors((previousErrors) => {
+      const fieldError = nextErrors[fieldName];
+
+      if (fieldError) {
+        return { ...previousErrors, [fieldName]: fieldError };
+      }
+
+      const { [fieldName]: _removed, ...remaining } = previousErrors;
+      return remaining;
+    });
+  };
+
+  const handleBlur = (
+    event: FocusEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name } = event.target;
+    const fieldName = name as keyof FormValues;
+    const nextErrors = getValidationErrors(formValues);
+
+    setErrors((previousErrors) => {
+      const fieldError = nextErrors[fieldName];
+
+      if (fieldError) {
+        return { ...previousErrors, [fieldName]: fieldError };
+      }
+
+      const { [fieldName]: _removed, ...remaining } = previousErrors;
+      return remaining;
+    });
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextErrors = getValidationErrors(formValues);
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setIsSubmitted(false);
+      return;
+    }
+
+    setIsSubmitted(true);
+  };
+
+  const handleReset = () => {
+    setFormValues(initialValues);
+    setErrors({});
+    setIsSubmitted(false);
+  };
+
+  const isFormInvalid = Object.keys(getValidationErrors(formValues)).length > 0;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main className="settings-page">
+      <section className="settings-card" aria-labelledby="settings-title">
+        <div className="settings-header">
+          <div>
+            <p className="eyebrow">Workspace</p>
+            <h1 id="settings-title">Account settings</h1>
+          </div>
+          <span className="status-badge">Secure</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+
+        <form className="settings-form" noValidate onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <label className="field">
+              <span>Full name</span>
+              <input
+                type="text"
+                name="fullName"
+                value={formValues.fullName}
+                onChange={handleFieldChange}
+                onBlur={handleBlur}
+                className={errors.fullName ? "input-error" : ""}
+                placeholder="Jane Doe"
+              />
+              {errors.fullName ? <small>{errors.fullName}</small> : null}
+            </label>
+
+            <label className="field">
+              <span>Email</span>
+              <input
+                type="email"
+                name="email"
+                value={formValues.email}
+                onChange={handleFieldChange}
+                onBlur={handleBlur}
+                className={errors.email ? "input-error" : ""}
+                placeholder="jane@company.com"
+              />
+              {errors.email ? <small>{errors.email}</small> : null}
+            </label>
+
+            <label className="field">
+              <span>Company</span>
+              <input
+                type="text"
+                name="company"
+                value={formValues.company}
+                onChange={handleFieldChange}
+                onBlur={handleBlur}
+                className={errors.company ? "input-error" : ""}
+                placeholder="Northstar Labs"
+              />
+              {errors.company ? <small>{errors.company}</small> : null}
+            </label>
+
+            <label className="field">
+              <span>Timezone</span>
+              <select
+                name="timezone"
+                value={formValues.timezone}
+                onChange={handleFieldChange}
+                onBlur={handleBlur}
+                className={errors.timezone ? "input-error" : ""}
+              >
+                <option value="">Select timezone</option>
+                {timezones.map((timezone) => (
+                  <option key={timezone} value={timezone}>
+                    {timezone}
+                  </option>
+                ))}
+              </select>
+              {errors.timezone ? <small>{errors.timezone}</small> : null}
+            </label>
+
+            <label className="field full-width">
+              <span>Password</span>
+              <input
+                type="password"
+                name="password"
+                value={formValues.password}
+                onChange={handleFieldChange}
+                onBlur={handleBlur}
+                className={errors.password ? "input-error" : ""}
+                placeholder="Minimum 8 characters"
+              />
+              {errors.password ? <small>{errors.password}</small> : null}
+            </label>
+
+            <label className="field full-width">
+              <span>Confirm password</span>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formValues.confirmPassword}
+                onChange={handleFieldChange}
+                onBlur={handleBlur}
+                className={errors.confirmPassword ? "input-error" : ""}
+                placeholder="Repeat your password"
+              />
+              {errors.confirmPassword ? (
+                <small>{errors.confirmPassword}</small>
+              ) : null}
+            </label>
+          </div>
+
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              name="notifications"
+              checked={formValues.notifications}
+              onChange={handleFieldChange}
+              onBlur={handleBlur}
+            />
+            <span>Send me product updates and security alerts.</span>
+          </label>
+          {errors.notifications ? (
+            <small className="checkbox-error">{errors.notifications}</small>
+          ) : null}
+
+          <div className="actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleReset}
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={isFormInvalid}
+            >
+              Save changes
+            </button>
+          </div>
+
+          {isSubmitted ? (
+            <p className="success-message">
+              Your settings have been saved successfully.
+            </p>
+          ) : null}
+        </form>
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    </main>
+  );
 }
 
-export default App
+export default App;
